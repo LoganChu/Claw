@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\s-lch\\\\OneDrive - Duke University\\\\PersonalProjects\\\\Claw\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "WebSearch",
+      "WebFetch(domain:docs.nvidia.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:developer.nvidia.com)",
+      "Bash(pip --version)",
+      "Bash(python -m pip --version)",
+      "Bash(conda info *)",
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(pip show *)",
+      "Bash(conda run *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(pip index *)",
+      "WebFetch(domain:medium.com)",
+      "Bash(conda create *)",
+      "Bash(conda activate *)",
+      "Bash(pip install *)",
+      "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pip install -e \"C:/Users/s-lch/OneDrive - Duke University/PersonalProjects/Claw[dev]\")",
+      "Bash(C:/Users/s-lch/anaconda3/envs/claw/python.exe *)",
+      "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pip list)",
+      "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pip install \"nvidia-nat[langchain]\" langgraph \"langchain>=0.3\" langchain-openai aiosqlite gitpython python-dotenv pyyaml rich schedule pywin32 pytest pytest-asyncio pytest-cov)",
+      "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pip install -e \"C:/Users/s-lch/OneDrive - Duke University/PersonalProjects/Claw\")",
+      "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pytest tests/ -v)",
+      "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pytest tests/ -v --co -q)",
+      "PowerShell(cd \"C:\\\\Users\\\\s-lch\\\\OneDrive - Duke University\\\\PersonalProjects\\\\Claw\"; Get-ChildItem -Recurse -Force | Select-Object FullName, @{Name=\"Size\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{$_.Length}}}, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Folder\"}else{[System.IO.Path]::GetExtension\\($_\\)}}} | Sort-Object FullName | Format-Table -AutoSize)"
+    ]
+  }
+}

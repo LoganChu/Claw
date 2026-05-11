@@ -1,0 +1,44 @@
+# NeMo Agent Toolkit workflow configuration for Claw productivity analysis pipeline
+# Run with: nat run --config_file=src/claw/configs/config.yml --input "Analyze today's productivity"
+
+functions:
+  # --- Data retrieval tools (read from SQLite event log) ---
+  git_events_tool:
+    _type: git_events_tool
+
+  focus_events_tool:
+    _type: focus_events_tool
+
+  calendar_events_tool:
+    _type: calendar_events_tool
+
+  productivity_history_tool:
+    _type: productivity_history_tool
+
+  privacy_filter_tool:
+    _type: privacy_filter_tool
+
+  # --- Analysis pipeline (LangGraph graph) ---
+  productivity_analysis_pipeline:
+    _type: langgraph_wrapper
+    graph: claw.pipeline.graph:compiled_graph
+
+llms:
+  analysis_llm:
+    _type: nim
+    model_name: meta/llama-3.3-70b-instruct
+    temperature: 0.1
+
+  insight_llm:
+    _type: nim
+    model_name: meta/llama-3.3-70b-instruct
+    temperature: 0.4
+
+workflow:
+  _type: productivity_analysis_pipeline
+  llm_ref: analysis_llm
+  tool_names:
+    - git_events_tool
+    - focus_events_tool
+    - calendar_events_tool
+    - productivity_history_tool
