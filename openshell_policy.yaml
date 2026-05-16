@@ -1,0 +1,41 @@
+filesystem_policy:
+  include_workdir: true
+  read_only:
+    - /usr
+    - /lib
+    - /lib64
+    - /etc
+    - /dev/urandom
+  read_write:
+    - /app/data
+    - /app/reports
+    - /tmp
+
+network_policies:
+  - name: allow-nvidia-nim
+    host: integrate.api.nvidia.com
+    port: 443
+    protocol: https
+  - name: allow-openai-api
+    host: api.openai.com
+    port: 443
+    protocol: https
+  - name: allow-slack-api
+    host: slack.com
+    port: 443
+    protocol: https
+  - name: allow-google-calendar
+    host: www.googleapis.com
+    port: 443
+    protocol: https
+  - name: allow-google-oauth
+    host: oauth2.googleapis.com
+    port: 443
+    protocol: https
+  - name: deny-all-else
+    action: deny
+
+process:
+  user: sandbox
+  group: sandbox
+  seccomp: default-strict

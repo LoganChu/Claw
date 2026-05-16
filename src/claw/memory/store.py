@@ -40,14 +40,18 @@ def _summary_to_document(summary: dict) -> tuple[str, dict]:
 async def upsert_summary(summary: dict) -> None:
     """Store or update a daily summary in the vector store."""
     try:
-        client = _get_client()
-        collection = client.get_or_create_collection(_COLLECTION_NAME)
-        text, metadata = _summary_to_document(summary)
-        collection.upsert(
-            ids=[summary["session_id"]],
-            documents=[text],
-            metadatas=[metadata],
-        )
+        def _upsert():
+            client = _get_client()
+            collection = client.get_or_create_collection(_COLLECTION_NAME)
+            text, metadata = _summary_to_document(summary)
+            collection.upsert(
+                ids=[summary["session_id"]],
+                documents=[text],
+                metadatas=[metadata],
+            )
+
+        import asyncio
+        await asyncio.to_thread(_upsert)
         logger.debug("[memory] upserted %s", summary["session_id"])
     except Exception:
         logger.exception("[memory] failed to upsert summary")
@@ -56,11 +60,14 @@ async def upsert_summary(summary: dict) -> None:
 async def retrieve_similar_sessions(query_text: str, n: int = 3) -> list[dict]:
     """Find the N most similar past sessions to the given query text."""
     try:
-        client = _get_client()
-        collection = client.get_or_create_collection(_COLLECTION_NAME)
-        results = collection.query(query_texts=[query_text], n_results=n)
-        metadatas = results.get("metadatas", [[]])[0]
-        return metadatas
+        def _query():
+            client = _get_client()
+            collection = client.get_or_create_collection(_COLLECTION_NAME)
+            results = collection.query(query_texts=[query_text], n_results=n)
+            return results.get("metadatas", [[]])[0]
+
+        import asyncio
+        return await asyncio.to_thread(_query)
     except Exception:
         logger.exception("[memory] retrieve_similar_sessions failed")
         return []

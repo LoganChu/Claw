@@ -26,7 +26,11 @@
       "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pip install -e \"C:/Users/s-lch/OneDrive - Duke University/PersonalProjects/Claw\")",
       "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pytest tests/ -v)",
       "Bash(\"C:/Users/s-lch/anaconda3/envs/claw/python.exe\" -m pytest tests/ -v --co -q)",
-      "PowerShell(cd \"C:\\\\Users\\\\s-lch\\\\OneDrive - Duke University\\\\PersonalProjects\\\\Claw\"; Get-ChildItem -Recurse -Force | Select-Object FullName, @{Name=\"Size\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{$_.Length}}}, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Folder\"}else{[System.IO.Path]::GetExtension\\($_\\)}}} | Sort-Object FullName | Format-Table -AutoSize)"
+      "PowerShell(cd \"C:\\\\Users\\\\s-lch\\\\OneDrive - Duke University\\\\PersonalProjects\\\\Claw\"; Get-ChildItem -Recurse -Force | Select-Object FullName, @{Name=\"Size\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{$_.Length}}}, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"Folder\"}else{[System.IO.Path]::GetExtension\\($_\\)}}} | Sort-Object FullName | Format-Table -AutoSize)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Select-Object -Property FullName)",
+      "Bash(Sort-Object FullName)",
+      "WebFetch(domain:www.nvidia.com)"
     ]
   }
 }

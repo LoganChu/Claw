@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timezone
 
 from claw.database import get_db, get_events, get_recent_summaries
+from claw.memory.store import retrieve_similar_sessions
 from claw.pipeline.state import ProductivityState
 
 logger = logging.getLogger(__name__)
@@ -37,14 +38,25 @@ async def ingest(state: ProductivityState) -> dict:
                 except json.JSONDecodeError:
                     pass
 
+    # Augment recent history with vector-similar past sessions for richer LLM context
+    similar_query = f"Date: {session_id}. Git events: {len(git_events)}. Focus events: {len(focus_events)}."
+    similar_sessions = await retrieve_similar_sessions(similar_query, n=3)
+    # Merge similar sessions into history without duplicating entries already present
+    existing_ids = {s.get("session_id") for s in history}
+    for s in similar_sessions:
+        if s.get("session_id") and s["session_id"] not in existing_ids:
+            history.append(s)
+            existing_ids.add(s["session_id"])
+
     logger.info(
-        "[ingest] session=%s git=%d focus=%d calendar=%d goals=%d history=%d",
+        "[ingest] session=%s git=%d focus=%d calendar=%d goals=%d history=%d (incl. %d similar)",
         session_id,
         len(git_events),
         len(focus_events),
         len(calendar_events),
         len(goal_snapshots),
         len(history),
+        len(similar_sessions),
     )
 
     return {

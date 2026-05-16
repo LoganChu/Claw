@@ -1,6 +1,18 @@
 # NeMo Agent Toolkit workflow configuration for Claw productivity analysis pipeline
 # Run with: nat run --config_file=src/claw/configs/config.yml --input "Analyze today's productivity"
 
+# Environment variables consumed by the pipeline — set these in .env or docker-compose.yml
+env_vars:
+  DB_PATH: data/claw.db
+  VECTOR_STORE_PATH: data/vectors
+  REPORT_OUTPUT_DIR: reports
+  ANALYSIS_MODEL: nvidia/llama-3.1-nemotron-70b-instruct
+  ANALYSIS_TEMPERATURE: "0.1"
+  INSIGHT_MODEL: nvidia/llama-3.1-nemotron-70b-instruct
+  INSIGHT_TEMPERATURE: "0.4"
+  CLASSIFICATION_CONFIDENCE_THRESHOLD: "0.5"
+  CLASSIFICATION_MIN_DATA_MINUTES: "30"
+
 functions:
   # --- Data retrieval tools (read from SQLite event log) ---
   git_events_tool:
@@ -26,13 +38,18 @@ functions:
 llms:
   analysis_llm:
     _type: nim
-    model_name: meta/llama-3.3-70b-instruct
+    model_name: nvidia/llama-3.1-nemotron-70b-instruct
     temperature: 0.1
 
   insight_llm:
     _type: nim
-    model_name: meta/llama-3.3-70b-instruct
+    model_name: nvidia/llama-3.1-nemotron-70b-instruct
     temperature: 0.4
+
+a2a_server:
+  host: 0.0.0.0
+  port: 8765
+  path: /events
 
 workflow:
   _type: productivity_analysis_pipeline
@@ -42,3 +59,4 @@ workflow:
     - focus_events_tool
     - calendar_events_tool
     - productivity_history_tool
+    - privacy_filter_tool

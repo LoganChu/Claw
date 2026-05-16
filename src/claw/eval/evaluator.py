@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 async def record_self_rating(session_id: str, rating: int) -> None:
     """Record user's 1-5 self-rating for a completed session."""
-    assert 1 <= rating <= 5, "Rating must be 1-5"
+    if not (1 <= rating <= 5):
+        raise ValueError(f"Rating must be 1-5, got {rating}")
     db_path = os.environ.get("DB_PATH", "data/claw.db")
     db = await get_db(db_path)
     try:

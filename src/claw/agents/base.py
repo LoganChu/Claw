@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 import aiosqlite
 
+from claw.a2a import bus
 from claw.database import insert_event
 from claw.safety import scrub_payload
 
@@ -15,7 +16,12 @@ logger = logging.getLogger(__name__)
 
 
 class BaseMonitorAgent(ABC):
-    """Runs in an async loop, polling for events and writing them to the event log."""
+    """
+    Runs in an async loop, polling for events and writing them to the event log.
+
+    After each DB write the event is also published to the A2A bus as a
+    nat.atif.Step, making it immediately available to any subscribed orchestrator.
+    """
 
     agent_name: str  # must be set by subclasses
 
@@ -50,6 +56,8 @@ class BaseMonitorAgent(ABC):
                 events = await self.collect()
                 for event_type, payload in events:
                     safe_payload = scrub_payload(payload)
+
+                    # Persist to SQLite event log
                     await insert_event(
                         self._db,
                         agent=self.agent_name,
@@ -57,6 +65,14 @@ class BaseMonitorAgent(ABC):
                         payload=safe_payload,
                     )
                     logger.debug("[%s] logged %s", self.agent_name, event_type)
+
+                    # Publish to A2A bus as nat.atif.Step for real-time orchestration
+                    await bus.publish(
+                        agent_name=self.agent_name,
+                        event_type=event_type,
+                        payload=safe_payload,
+                    )
+
             except asyncio.CancelledError:
                 raise
             except Exception:

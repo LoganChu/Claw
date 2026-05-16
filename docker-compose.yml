@@ -1,0 +1,35 @@
+services:
+  claw:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      # Mount Google Calendar credentials if present
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.json:/app/token.json
+    env_file:
+      - .env
+    environment:
+      DB_PATH: /app/data/claw.db
+      VECTOR_STORE_PATH: /app/data/vectors
+      REPORT_OUTPUT_DIR: /app/reports
+    restart: unless-stopped
+
+  # Optional: local Nemotron inference via Ollama for fully private analysis
+  # Uncomment to run entirely offline — no API keys required
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   volumes:
+  #     - ollama_models:/root/.ollama
+  #   ports:
+  #     - "11434:11434"
+  #   deploy:
+  #     resources:
+  #       reservations:
+  #         devices:
+  #           - driver: nvidia
+  #             count: 1
+  #             capabilities: [gpu]
+
+# volumes:
+#   ollama_models:

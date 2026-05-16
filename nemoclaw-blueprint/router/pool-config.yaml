@@ -1,0 +1,39 @@
+# NeMo Claw privacy router — model pool configuration
+# Routes requests based on data sensitivity:
+#   private: local Nemotron (never leaves machine)
+#   aggregated: NIM cloud endpoint (anonymised metrics only)
+#
+# Run via LiteLLM proxy: litellm --config nemoclaw-blueprint/router/pool-config.yaml
+
+model_list:
+  - model_name: local-nemotron
+    litellm_params:
+      model: ollama/nemotron-mini
+      api_base: http://localhost:11434
+    model_info:
+      description: "Local Nemotron for private event payloads and commit messages"
+
+  - model_name: nim-nemotron
+    litellm_params:
+      model: nvidia/llama-3.1-nemotron-70b-instruct
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY
+    model_info:
+      description: "NIM cloud endpoint for aggregated/anonymised analysis"
+
+router_settings:
+  # Route to local model when sensitivity tag is 'private', cloud otherwise
+  routing_strategy: tag-based
+  default_model: nim-nemotron
+
+  tag_routing:
+    private: local-nemotron
+    aggregated: nim-nemotron
+
+  # Tolerance 0.0 = strict accuracy, 1.0 = max cost savings
+  tolerance: 0.3
+
+litellm_settings:
+  drop_params: true
+  success_callback: []
+  failure_callback: []

@@ -12,16 +12,24 @@ from claw.pipeline.state import ProductivityState
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are a productivity coach for software engineers.
+_DEFAULT_SYSTEM_PROMPT = """You are a productivity coach for software engineers.
 Given a developer's work session analysis, generate 3-5 specific, actionable insights.
 Each insight should reference concrete data from the session.
 Return ONLY a JSON array of strings, e.g. ["Insight 1.", "Insight 2.", ...]"""
 
 
+def _get_system_prompt() -> str:
+    try:
+        from claw.optimizer import load_optimized_prompts
+        return load_optimized_prompts().get("insight_generator", _DEFAULT_SYSTEM_PROMPT)
+    except Exception:
+        return _DEFAULT_SYSTEM_PROMPT
+
+
 async def insight_generator(state: ProductivityState) -> dict:
     llm = ChatOpenAI(
-        model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-        temperature=0.4,
+        model=os.environ.get("INSIGHT_MODEL", os.environ.get("OPENAI_MODEL", "gpt-4o-mini")),
+        temperature=float(os.environ.get("INSIGHT_TEMPERATURE", "0.4")),
     )
 
     context = {
@@ -36,7 +44,7 @@ async def insight_generator(state: ProductivityState) -> dict:
     }
 
     messages = [
-        SystemMessage(content=_SYSTEM_PROMPT),
+        SystemMessage(content=_get_system_prompt()),
         HumanMessage(content=f"Session analysis:\n{json.dumps(context, indent=2)}"),
     ]
 

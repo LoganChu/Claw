@@ -12,16 +12,24 @@ from claw.pipeline.state import ProductivityState
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """You are an expert productivity analyst. Analyze a developer's work session data and:
+_DEFAULT_SYSTEM_PROMPT = """You are an expert productivity analyst. Analyze a developer's work session data and:
 1. Identify 2-4 specific patterns (e.g. "peak focus in late morning", "frequent context switches after meetings")
 2. Compute a productivity score from 1-10 based on focus depth, output, and goal progress
 3. Return ONLY valid JSON with keys: "patterns" (list of strings) and "score" (float 1-10)"""
 
 
+def _get_system_prompt() -> str:
+    try:
+        from claw.optimizer import load_optimized_prompts
+        return load_optimized_prompts().get("pattern_analyzer", _DEFAULT_SYSTEM_PROMPT)
+    except Exception:
+        return _DEFAULT_SYSTEM_PROMPT
+
+
 async def pattern_analyzer(state: ProductivityState) -> dict:
     llm = ChatOpenAI(
-        model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-        temperature=0.1,
+        model=os.environ.get("ANALYSIS_MODEL", os.environ.get("OPENAI_MODEL", "gpt-4o-mini")),
+        temperature=float(os.environ.get("ANALYSIS_TEMPERATURE", "0.1")),
     )
 
     # Build concise context for the LLM (keep token count low)
@@ -46,7 +54,7 @@ async def pattern_analyzer(state: ProductivityState) -> dict:
     }
 
     messages = [
-        SystemMessage(content=_SYSTEM_PROMPT),
+        SystemMessage(content=_get_system_prompt()),
         HumanMessage(content=f"Session data:\n{json.dumps(context, indent=2)}"),
     ]
 

@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import logging
+import os
 
 from claw.pipeline.state import ProductivityState
 
 logger = logging.getLogger(__name__)
 
-_MIN_DATA_MINUTES = 30  # minimum data for high-confidence classification
+_MIN_DATA_MINUTES = int(os.environ.get("CLASSIFICATION_MIN_DATA_MINUTES", "30"))
+_CONFIDENCE_THRESHOLD = float(os.environ.get("CLASSIFICATION_CONFIDENCE_THRESHOLD", "0.5"))
 
 
 def classify(state: ProductivityState) -> dict:
@@ -57,7 +59,7 @@ def classify(state: ProductivityState) -> dict:
 
 def needs_more_data(state: ProductivityState) -> str:
     """Routing function: cycle back to ingest if we don't have enough data yet."""
-    if state.classification_confidence < 0.5 and state.retry_count < state.max_retries:
+    if state.classification_confidence < _CONFIDENCE_THRESHOLD and state.retry_count < state.max_retries:
         logger.info("[classify] low confidence (%.2f), requesting re-ingest (retry %d)",
                     state.classification_confidence, state.retry_count + 1)
         return "retry"

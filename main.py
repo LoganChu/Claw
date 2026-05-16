@@ -50,10 +50,33 @@ async def run_analysis(session_id: str = "") -> str:
     return result.report_md if hasattr(result, "report_md") else "No report generated."
 
 
+async def _a2a_consumer() -> None:
+    """Log all A2A bus events to the console in real time."""
+    from claw.a2a import bus
+
+    queue = bus.subscribe()
+    while True:
+        step = await queue.get()
+        extra = step.extra or {}
+        logger.debug(
+            "[A2A] %s/%s — %s",
+            extra.get("agent", "?"),
+            extra.get("event_type", "?"),
+            step.message,
+        )
+
+
 async def run_agents() -> None:
-    """Start all monitor agents and the periodic analysis scheduler."""
+    """Start all monitor agents, the A2A server, the A2A consumer, and the periodic analysis scheduler."""
     from claw.database import get_db
-    from claw.agents import GitMonitorAgent, FocusTrackerAgent, GoalCheckAgent
+    from claw.agents import (
+        GitMonitorAgent,
+        FocusTrackerAgent,
+        GoalCheckAgent,
+        CalendarAgent,
+        CommunicationAgent,
+    )
+    from claw.a2a import run_server
 
     db_path = os.environ.get("DB_PATH", "data/claw.db")
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
@@ -69,8 +92,23 @@ async def run_agents() -> None:
         GoalCheckAgent(db, poll_interval=1800),
     ]
 
+    # Optional agents — activated when their credentials are present
+    if os.environ.get("GOOGLE_CALENDAR_ID") or (Path("credentials.json").exists()):
+        agents.append(CalendarAgent(db, poll_interval=poll_interval))
+        logger.info("CalendarAgent enabled")
+
+    if os.environ.get("SLACK_BOT_TOKEN"):
+        agents.append(CommunicationAgent(db, poll_interval=poll_interval))
+        logger.info("CommunicationAgent enabled")
+
     for agent in agents:
         agent.start()
+
+    # A2A HTTP server — exposes SSE stream + publish endpoint for external consumers
+    a2a_server_task = asyncio.create_task(run_server(), name="a2a_server")
+
+    # A2A bus consumer — closes the pub/sub loop by logging all published events
+    consumer_task = asyncio.create_task(_a2a_consumer(), name="a2a_consumer")
 
     console.print("[bold green]Claw is running[/bold green] — press Ctrl+C to stop")
     console.print(f"  Monitor agents: {', '.join(a.agent_name for a in agents)}")
@@ -87,7 +125,6 @@ async def run_agents() -> None:
     last_analysis = 0.0
     while not stop_event.is_set():
         now = asyncio.get_event_loop().time()
-        current_hour = datetime.now(timezone.utc).hour
 
         # Periodic analysis
         if now - last_analysis >= analysis_interval:
@@ -101,6 +138,13 @@ async def run_agents() -> None:
         await asyncio.sleep(10)
 
     # Graceful shutdown
+    for task in (a2a_server_task, consumer_task):
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
     logger.info("Shutting down monitor agents…")
     for agent in agents:
         await agent.stop()
@@ -112,11 +156,21 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Claw productivity agent")
     parser.add_argument("--report", action="store_true", help="Run analysis and print report, then exit")
     parser.add_argument("--date", default="", help="Session date for --report (YYYY-MM-DD)")
+    parser.add_argument("--dashboard", action="store_true", help="Launch the live Rich dashboard")
+    parser.add_argument("--optimize", action="store_true", help="Run NeMo prompt optimizer over recent rated sessions")
     args = parser.parse_args()
 
-    if args.report:
+    if args.optimize:
+        from claw.optimizer import run_prompt_optimizer
+        import json as _json
+        result = asyncio.run(run_prompt_optimizer())
+        console.print(_json.dumps(result, indent=2))
+    elif args.report:
         report = asyncio.run(run_analysis(args.date))
         console.print(Markdown(report))
+    elif args.dashboard:
+        from claw.dashboard import ClawApp
+        asyncio.run(ClawApp().run())
     else:
         asyncio.run(run_agents())
 
